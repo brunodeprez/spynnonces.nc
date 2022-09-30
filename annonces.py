@@ -5,8 +5,9 @@ import urllib
 from tinydb import TinyDB, where
 from mailjet_rest import Client
 import logging
+from pathlib import Path
 
-logging.basicConfig(filename='logs.log', encoding='utf-8', level=logging.DEBUG)
+logging.basicConfig(filename=Path(__file__).with_name('logs.log'), encoding='utf-8', level=logging.DEBUG)
 logging.basicConfig(format='%(asctime)s %(message)s')
 logging.info('starting process')
 
@@ -15,10 +16,13 @@ categories_to_remove = {
     "2roues.nc": ["Pièces détachées Moto"]
 }    
 
-with open('config.json', 'r') as f:
+
+p = Path(__file__).with_name('config.json')
+with p.open('r') as f:
   config = json.load(f)
 
-with open('mail-config.json', 'r') as f:
+p = Path(__file__).with_name('mail-config.json')
+with p.open('r') as f:
   mail_config = json.load(f)
 
 def filter_hit():
@@ -63,7 +67,7 @@ def process_hit():
     else:
         print('skipping ad ' + str(hit['id']))
 
-db = TinyDB('db.json')
+db = TinyDB(Path(__file__).with_name('db.json'))
 processedAdsTable = db.table('processed') 
 
 url = {
