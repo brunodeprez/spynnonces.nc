@@ -1,21 +1,27 @@
 #!/usr/bin/env python3
+import logging
+from pathlib import Path
+logging.basicConfig(
+    level="DEBUG",
+    format="%(asctime)s - %(name)s - [ %(message)s ]",
+    datefmt='%d-%b-%y %H:%M:%S',
+    force=True,
+    handlers=[
+        logging.FileHandler(Path(__file__).with_name('logs.log')),
+        logging.StreamHandler()
+    ])
 import requests
 import json
 import urllib
 from tinydb import TinyDB, where
 from mailjet_rest import Client
-import logging
-from pathlib import Path
 
-logging.basicConfig(filename=Path(__file__).with_name('logs.log'), encoding='utf-8', level=logging.DEBUG)
-logging.basicConfig(format='%(asctime)s %(message)s')
 logging.info('starting process')
 
 categories_to_remove = {
     "automobiles.nc": ["Divers", "Pièces moteurs", "Carrosseries", "Éclairages"],
     "2roues.nc": ["Pièces détachées Moto"]
 }    
-
 
 p = Path(__file__).with_name('config.json')
 with p.open('r') as f:
