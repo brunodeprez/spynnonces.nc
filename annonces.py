@@ -1,8 +1,14 @@
+#!/usr/bin/env python3
 import requests
 import json
 import urllib
 from tinydb import TinyDB, where
 from mailjet_rest import Client
+import logging
+
+logging.basicConfig(filename='logs.log', encoding='utf-8', level=logging.DEBUG)
+logging.basicConfig(format='%(asctime)s %(message)s')
+logging.info('starting process')
 
 categories_to_remove = {
     "automobiles.nc": ["Divers", "Pièces moteurs", "Carrosseries", "Éclairages"],
@@ -37,8 +43,7 @@ def send_email():
             }
         ],
         "Subject": "New add on automobiles.nc for your search " + search['keywords'],
-        "TextPart": 'https://annonces.nc/automobiles/posts/'+hit['slug'],
-        "HTMLPart": "<a href=\"https://annonces.nc/automobiles/posts/"+hit['slug']+"\">Click here</a></li>",
+        "HTMLPart": "<a href=\"https://annonces.nc/"+search['site'][:-3]+"/posts/"+hit['slug']+"\">Click here</a></li>",
         }
     ]
     }
