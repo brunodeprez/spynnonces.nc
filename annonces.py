@@ -52,8 +52,8 @@ def send_email():
             "Email": x['email']
             }
         ],
-        "Subject": "New add on automobiles.nc for your search " + search['keywords'],
-        "HTMLPart": "<a href=\"https://annonces.nc/"+search['site'][:-3]+"/posts/"+hit['slug']+"\">Click here</a></li>",
+        "Subject": "New add on annonces.nc for your search " + search['keywords'],
+        "HTMLPart": "<a href=\"https://annonces.nc/"+search['site'][:-3]+"/posts/"+hit['slug']+"\">"+hit['title']+"</a></li>",
         }
     ]
     }
@@ -62,16 +62,20 @@ def send_email():
 def process_new_hit():
     processedAdsTable.insert({'search_id': search['id'] , 'hit_id': hit['id']})
     if filter_hit() == True:
-        print(hit)
+        print(json.dumps(hit, indent=4))
+        print('NEW AD! '  + str(search['id']) + ' ' + str(hit['id']) + ' - ' + str(hit['title']))
+        print('************************')
+        print('******* SENDING ********')
+        print('************************')
         send_email()
-    print('new ad! '  + str(search['id']) + ' ' + str(hit['id']))
+
 
 def process_hit():
     query = processedAdsTable.get((where('hit_id') == hit['id']) & (where('search_id') == search['id']))
     if query is None:
         process_new_hit()        
     else:
-        print('skipping ad ' + str(hit['id']))
+        print('skipping ad ' + str(hit['id']) + ' - ' + str(hit['title']))
 
 db = TinyDB(Path(__file__).with_name('db.json'))
 processedAdsTable = db.table('processed') 
