@@ -25,7 +25,7 @@ logging.info('starting process')
 categories_to_remove = {
     "automobiles.nc": ["Divers", "Pièces moteurs", "Carrosseries", "Éclairages"],
     "2roues.nc": ["Pièces détachées Moto"]
-}    
+}
 
 current_hit = 0
 current_search = 0
@@ -78,7 +78,7 @@ async def send_email():
 
 async def process_new_hit():
     processedAdsTable.insert({'search_id': current_search['id'] , 'hit_id': current_hit['id']})
-    if filter_hit() == True:        
+    if filter_hit() == True:
         print('NEW AD! '  + str(current_search['id']) + ' ' + str(current_hit['id']) + ' - ' + str(current_hit['title']))
         await send_email()
 
@@ -86,12 +86,12 @@ async def process_new_hit():
 async def process_hit():
     query = processedAdsTable.get((where('hit_id') == current_hit['id']) & (where('search_id') == current_search['id']))
     if query is None:
-        await process_new_hit()        
+        await process_new_hit()
     else:
         print('skipping ad ' + str(current_hit['id']) + ' - ' + str(current_hit['title']))
 
 async def screenshot():
-    browser = await launch()
+    browser = await launch(executablePath = '/usr/bin/chromium-browser', options={'args': ['--no-sandbox']})
     page = await browser.newPage()
     await page.goto("https://annonces.nc/" + current_search['site'][:-3] + "/posts/"+current_hit['slug'])
     element = await page.querySelector('#cookie-policy-container > div:nth-child(2) > div > button')
@@ -102,7 +102,7 @@ async def screenshot():
     return result
 
 db = TinyDB(Path(__file__).with_name('db.json'))
-processedAdsTable = db.table('processed') 
+processedAdsTable = db.table('processed')
 
 url = {
     "x-algolia-agent": "Algolia for JavaScript (3.35.1); Browser",
@@ -115,7 +115,7 @@ async def process():
         global current_email_to
         current_email_to = x['email']
         for search in x['searches']:
-            global current_search   
+            global current_search
             current_search = search
             page = 0
             while (True):
@@ -129,7 +129,7 @@ async def process():
                 if len(results['hits']) == 0:
                     break
                 for hit in results['hits']:
-                    global current_hit   
+                    global current_hit
                     current_hit = hit
                     await process_hit()
                 page = page + 1
