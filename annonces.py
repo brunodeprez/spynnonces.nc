@@ -80,6 +80,7 @@ async def process_new_hit():
     processedAdsTable.insert({'search_id': current_search['id'] , 'hit_id': current_hit['id']})
     if filter_hit() == True:        
         print('NEW AD! '  + str(current_search['id']) + ' ' + str(current_hit['id']) + ' - ' + str(current_hit['title']))
+        print('**************')
         await send_email()
 
 
