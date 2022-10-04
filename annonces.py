@@ -91,7 +91,7 @@ async def process_hit():
         print('skipping ad ' + str(current_hit['id']) + ' - ' + str(current_hit['title']))
 
 async def screenshot():
-    browser = await launch(executablePath = '/usr/bin/chromium-browser', options={'args': ['--no-sandbox']})
+    browser = await launch(options={'args': ['--no-sandbox']})
     page = await browser.newPage()
     await page.goto("https://annonces.nc/" + current_search['site'][:-3] + "/posts/"+current_hit['slug'])
     element = await page.querySelector('#cookie-policy-container > div:nth-child(2) > div > button')
