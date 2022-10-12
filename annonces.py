@@ -35,7 +35,7 @@ def filter_hit():
     if hit['kind'] != "sell" or  hit['category']['root_name'] != search['site'] or hit['category']['name'] in categories_to_remove[search['site']]:
         return False
     if search.get('max_km') and hit['custom_fields'].get('km') and hit['custom_fields']['km'] > search['max_km']:
-        #the hit as too much mileage
+        #the hit has too much mileage
         return False
     return True
 
@@ -63,10 +63,13 @@ def process_new_hit():
     processedAdsTable.insert({'search_id': search['id'] , 'hit_id': hit['id']})
     if filter_hit() == True:
         print(json.dumps(hit, indent=4))
+        print('')
         print('NEW AD! '  + str(search['id']) + ' ' + str(hit['id']) + ' - ' + str(hit['title']))
+        print('')
         print('************************')
         print('******* SENDING ********')
         print('************************')
+        print('')
         send_email()
 
 
@@ -75,7 +78,7 @@ def process_hit():
     if query is None:
         process_new_hit()        
     else:
-        print('skipping ad ' + str(hit['id']) + ' - ' + str(hit['title']))
+        print('Skipping ad ' + str(hit['id']) + ' - ' + str(hit['title']))
 
 db = TinyDB(Path(__file__).with_name('db.json'))
 processedAdsTable = db.table('processed') 
