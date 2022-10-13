@@ -24,7 +24,8 @@ logging.info('starting process')
 
 categories_to_remove = {
     "automobiles.nc": ["Divers", "Pièces moteurs", "Carrosseries", "Éclairages"],
-    "2roues.nc": ["Pièces détachées Moto"]
+    "2roues.nc": ["Pièces détachées Moto"],
+    "annonces.nc": []
 }
 
 current_hit = 0
