@@ -30,7 +30,8 @@ categories_to_remove = {
 current_hit = 0
 current_search = 0
 current_email_to = 0
-
+browser = 0
+browser_page = {}
 
 p = Path(__file__).with_name('config.json')
 with p.open('r') as f:
@@ -91,14 +92,12 @@ async def process_hit():
         print('skipping ad ' + str(current_hit['id']) + ' - ' + str(current_hit['title']))
 
 async def screenshot():
-    browser = await launch(options={'args': ['--no-sandbox']})
-    page = await browser.newPage()
-    await page.goto("https://annonces.nc/" + current_search['site'][:-3] + "/posts/"+current_hit['slug'])
-    element = await page.querySelector('#cookie-policy-container > div:nth-child(2) > div > button')
-    await element.click()
-    hit_element = await page.querySelector('annonces-post-detail > div')
+    await browser_page.goto("https://annonces.nc/" + current_search['site'][:-3] + "/posts/"+current_hit['slug'])
+    element = await browser_page.querySelector('#cookie-policy-container > div:nth-child(2) > div > button')
+    if element != None:
+        await element.click()
+    hit_element = await browser_page.querySelector('annonces-post-detail > div')
     result = await hit_element.screenshot(encoding = "base64")
-    await browser.close()
     return result
 
 db = TinyDB(Path(__file__).with_name('db.json'))
@@ -111,6 +110,10 @@ url = {
 }
 
 async def process():
+    global browser    
+    browser = await launch(options={'args': ['--no-sandbox']})
+    global browser_page
+    browser_page = await browser.newPage()
     for x in config:
         global current_email_to
         current_email_to = x['email']
@@ -133,5 +136,6 @@ async def process():
                     current_hit = hit
                     await process_hit()
                 page = page + 1
+    await browser.close()
 
 asyncio.run(process())
