@@ -93,11 +93,14 @@ async def process_hit():
 
 async def screenshot():
     page = await browser.newPage()
-    await page.goto("https://annonces.nc/" + current_search['site'][:-3] + "/posts/"+current_hit['slug'])
+    await page.goto("http://annonces.nc/" + current_search['site'][:-3] + "/posts/"+current_hit['slug'])
+    time.sleep(5)
     element = await page.querySelector('#cookie-policy-container > div:nth-child(2) > div > button')
     if element != None:
         await element.click()
     hit_element = await page.querySelector('annonces-post-detail > div')
+    if hit_element == None:
+        await page.screenshot({'path': current_hit['slug']+'.png'})
     result = await hit_element.screenshot(encoding = "base64")
     return result
 
@@ -112,7 +115,7 @@ url = {
 
 async def process():
     global browser    
-    browser = await launch(options={'args': ['--no-sandbox']})
+    browser = await launch(ignoreHTTPSErrors = True, options = {'args': ['--no-sandbox', '--ignore-certificate-errors', '--ignore-certificate-errors-spki-list'] })
     for x in config:
         global current_email_to
         current_email_to = x['email']
