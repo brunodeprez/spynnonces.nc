@@ -94,7 +94,7 @@ async def process_hit():
 async def screenshot():
     page = await browser.newPage()
     await page.goto("http://annonces.nc/" + current_search['site'][:-3] + "/posts/"+current_hit['slug'])
-    time.sleep(5)
+    time.sleep(3)
     element = await page.querySelector('#cookie-policy-container > div:nth-child(2) > div > button')
     if element != None:
         await element.click()
@@ -102,6 +102,7 @@ async def screenshot():
     if hit_element == None:
         await page.screenshot({'path': current_hit['slug']+'.png'})
     result = await hit_element.screenshot(encoding = "base64")
+    await page.close()
     return result
 
 db = TinyDB(Path(__file__).with_name('db.json'))
