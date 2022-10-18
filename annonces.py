@@ -16,6 +16,15 @@ import urllib
 from tinydb import TinyDB, where
 from mailjet_rest import Client
 
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email import encoders
+import os
+
+
+
 logging.info('starting process')
 
 categories_to_remove = {
@@ -31,6 +40,32 @@ p = Path(__file__).with_name('mail-config.json')
 with p.open('r') as f:
   mail_config = json.load(f)
 
+p = Path(__file__).with_name('gmail-config.json')
+with p.open('r') as f:
+  gmail_config = json.load(f)
+
+def sendGmail(smtpHost, smtpPort, mailUname, mailPwd, fromEmail, mailSubject, mailContentHtml, recepientsMailList):
+    # create message object
+    msg = MIMEMultipart()
+    msg['From'] = fromEmail
+    msg['To'] = ','.join(recepientsMailList)
+    msg['Subject'] = mailSubject
+    # msg.attach(MIMEText(mailContentText, 'plain'))
+    msg.attach(MIMEText(mailContentHtml, 'html'))
+
+     # Send message object as email using smptplib
+    s = smtplib.SMTP(smtpHost, smtpPort)
+    s.starttls()
+    s.login(mailUname, mailPwd)
+    msgText = msg.as_string()
+    sendErrs = s.sendmail(fromEmail, [recepientsMailList], msgText)
+    s.quit()
+
+    # check if errors occured and handle them accordingly
+    if not len(sendErrs.keys()) == 0:
+        raise Exception("Errors occurred while sending email", sendErrs)
+
+
 def filter_hit():
     if hit['kind'] != "sell" or  hit['category']['root_name'] != search['site'] or hit['category']['name'] in categories_to_remove[search['site']]:
         return False
@@ -39,7 +74,18 @@ def filter_hit():
         return False
     return True
 
-def send_email():
+def send_Gmail_email():
+
+    # mail body, recepients, attachment files
+    mailSubject = "New add on annonces.nc for your search " + search['keywords']
+    mailContentHtml = "<a href=\"https://annonces.nc/"+search['site'][:-3]+"/posts/"+hit['slug']+"\">"+hit['title']+"</a></li>"
+    sendGmail(gmail_config['smtpHost'], gmail_config['smtpPort'], gmail_config['mailUname'], gmail_config['mailPwd'], gmail_config['fromEmail'], 
+            mailSubject, mailContentHtml, gmail_config['recipientList'])
+
+    print("Email sent...")
+
+
+def send_MailJet_email():
     api_key = mail_config['MailJet']['Api_Key']
     api_secret = mail_config['MailJet']['Api_Secret']
     mailjet = Client(auth=(api_key, api_secret), version='v3.1')
@@ -59,10 +105,11 @@ def send_email():
     }
     result = mailjet.send.create(data=data)
 
+
 def process_new_hit():
     processedAdsTable.insert({'search_id': search['id'] , 'hit_id': hit['id']})
     if filter_hit() == True:
-        print(json.dumps(hit, indent=4))
+        #print(json.dumps(hit, indent=4))
         print('')
         print('NEW AD! '  + str(search['id']) + ' ' + str(hit['id']) + ' - ' + str(hit['title']))
         print('')
@@ -70,8 +117,8 @@ def process_new_hit():
         print('******* SENDING ********')
         print('************************')
         print('')
-        send_email()
-
+        #send_MailJet_email()
+        send_Gmail_email()
 
 def process_hit():
     query = processedAdsTable.get((where('hit_id') == hit['id']) & (where('search_id') == search['id']))
