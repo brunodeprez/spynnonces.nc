@@ -28,10 +28,10 @@ categories_to_remove = {
     "annonces.nc": []
 }
 
-current_hit = 0
-current_search = 0
-current_email_to = 0
-browser = 0
+global current_hit
+global current_search
+global current_email_to
+global browser
 
 p = Path(__file__).with_name('config.json')
 with p.open('r') as f:
@@ -98,6 +98,7 @@ async def screenshot():
     element = await page.querySelector('#cookie-policy-container > div:nth-child(2) > div > button')
     if element != None:
         await element.click()
+    await page.evaluate('document.querySelector("nav").remove()')
     hit_element = await page.querySelector('annonces-post-detail > div')
     if hit_element == None:
         await page.screenshot({'path': current_hit['slug']+'.png'})
