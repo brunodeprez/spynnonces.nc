@@ -93,6 +93,7 @@ async def process_hit():
 
 async def screenshot():
     page = await browser.newPage()
+    page.setDefaultNavigationTimeout(0)
     await page.goto("http://annonces.nc/" + current_search['site'][:-3] + "/posts/"+current_hit['slug'])
     time.sleep(3)
     element = await page.querySelector('#cookie-policy-container > div:nth-child(2) > div > button')
