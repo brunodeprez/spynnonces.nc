@@ -80,7 +80,7 @@ def send_Gmail_email():
     mailSubject = "New add on annonces.nc for your search " + search['keywords']
     mailContentHtml = "<a href=\"https://annonces.nc/"+search['site'][:-3]+"/posts/"+hit['slug']+"\">"+hit['title']+"</a></li>"
     sendGmail(gmail_config['smtpHost'], gmail_config['smtpPort'], gmail_config['mailUname'], gmail_config['mailPwd'], gmail_config['fromEmail'], 
-            mailSubject, mailContentHtml, gmail_config['recipientList'])
+            mailSubject, mailContentHtml, x['email'])
 
     print("Email sent...")
 
