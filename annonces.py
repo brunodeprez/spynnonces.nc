@@ -30,8 +30,8 @@ categories_to_remove = {
 
 global current_hit
 global current_search
-global current_email_to
 global browser
+global current_config
 
 p = Path(__file__).with_name('config.json')
 with p.open('r') as f:
@@ -49,47 +49,75 @@ def filter_hit():
         return False
     return True
 
-async def send_email():
+async def send_email(status):
     api_key = mail_config['MailJet']['Api_Key']
     api_secret = mail_config['MailJet']['Api_Secret']
     mailjet = Client(auth=(api_key, api_secret), version='v3.1')
-    base64Attachment = await screenshot()
+    base64Attachment = await screenshot() if current_config['screenshot'] ==  1 else None
     data = {
-    'Messages': [
-        {
-        "From": mail_config['MailJet']['From'],
-        "To": [
+        "Messages": [
             {
-            "Email": current_email_to
+            "From": mail_config['MailJet']['From'],
+            "To": [
+                {
+                "Email": current_config['email']
+                }
+            ],
+            "Subject": "New "+ "-".join(status) +" on annonces.nc for your search " + current_search['keywords'],
+            "HTMLPart": "<a href=\"https://annonces.nc/" + current_search['site'][:-3]+"/posts/" + current_hit['slug']+"\">" + current_hit['title'] + "</a></li>",
             }
-        ],
-        "Subject": "New add on annonces.nc for your search " + current_search['keywords'],
-        "HTMLPart": "<a href=\"https://annonces.nc/" + current_search['site'][:-3]+"/posts/" + current_hit['slug']+"\">" + current_hit['title'] + "</a></li>",
-        "Attachments": [
+        ]
+    }
+    if base64Attachment is not None:
+        data['Messages'][0]['Attachments'] = [
             {
                     "ContentType": "image/png",
                     "Filename": "screenshot.png",
                     "Base64Content": base64Attachment
             }
-            ]
-        }
-    ]
-    }
+        ]      
+
     result = mailjet.send.create(data=data)
 
-async def process_new_hit():
-    processedAdsTable.insert({'search_id': current_search['id'] , 'hit_id': current_hit['id']})
-    if filter_hit() == True:
-        print('NEW AD! '  + str(current_search['id']) + ' ' + str(current_hit['id']) + ' - ' + str(current_hit['title']))
-        await send_email()
+# async def process_new_hit():
+#     processedAdsTable.insert({'search_id': current_search['id'] , 'hit_id': current_hit['id']})
+#     if filter_hit() == True:
+#         print('NEW AD! '  + str(current_search['id']) + ' ' + str(current_hit['id']) + ' - ' + str(current_hit['title']))
+#         await send_email()
 
+# async def process_hit():
+#     status = get_hit_status()
+#     query = processedAdsTable.get((where('hit_id') == current_hit['id']) & (where('search_id') == current_search['id']))
+#     if query is None:
+#         await process_new_hit()
+#     else:
+#         print('skipping ad ' + str(current_hit['id']) + ' - ' + str(current_hit['title']))
 
 async def process_hit():
-    query = processedAdsTable.get((where('hit_id') == current_hit['id']) & (where('search_id') == current_search['id']))
-    if query is None:
-        await process_new_hit()
+    status = []
+    hit = processedAdsTable.get((where('hit_id') == current_hit['id']) & (where('search_id') == current_search['id']))
+    # the hit is already in the database, no changes -> skip   
+    if hit is not None and hit.get('price') == current_hit['price'] and hit.get('description') == current_hit['description'] and hit.get('title') == current_hit['title']:
+        return
+    # new hit
+    if hit is None:
+        processedAdsTable.insert({'search_id': current_search['id'], 'hit_id': current_hit['id'], 'title': current_hit['title'], 'price': current_hit['price'], 'description': current_hit['description']})
+        status.append('ad')
     else:
-        print('skipping ad ' + str(current_hit['id']) + ' - ' + str(current_hit['title']))
+        # new price for existing hit    
+        if hit.get('price') != current_hit['price']:
+            processedAdsTable.update({'price': current_hit['price']}, (where('hit_id') == current_hit['id']) & (where('search_id') == current_search['id']))
+            status.append('price')
+        # new title or description for existing hit
+        if hit.get('description') != current_hit['description'] or hit.get('title') != current_hit['title']:
+            status.append('title')
+            status.append('description')
+            processedAdsTable.update({'description': current_hit['description'], 'title': current_hit['title']}, (where('hit_id') == current_hit['id']) & (where('search_id') == current_search['id']))
+    # compare hit to personal filters
+    if filter_hit() == True:
+        logging.info('New | ' + " - ".join(status) + ' | ' + current_hit['title'])
+        if current_config['send_email'] == 1:
+            await send_email(status)
 
 async def screenshot():
     page = await browser.newPage()
@@ -120,8 +148,8 @@ async def process():
     global browser    
     browser = await launch(ignoreHTTPSErrors = True, options = {'args': ['--no-sandbox', '--ignore-certificate-errors', '--ignore-certificate-errors-spki-list'] })
     for x in config:
-        global current_email_to
-        current_email_to = x['email']
+        global current_config
+        current_config = x
         for search in x['searches']:
             global current_search
             current_search = search
@@ -142,5 +170,6 @@ async def process():
                     await process_hit()
                 page = page + 1
     await browser.close()
+    logging.info('finish process')
 
 asyncio.run(process())

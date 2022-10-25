@@ -1,0 +1,31 @@
+[{
+    "email": "toto@gmail.com",
+    "send_email": 1,
+    "screenshot": 0,
+    "searches": [
+        {
+            "id":1,
+            "site":"automobiles.nc",
+            "keywords": "berlingo",
+            "max_km": 60000,
+            "min_price": 800000
+        },
+        {
+            "id":2,
+            "site":"automobiles.nc",
+            "keywords": "rifter"
+        }
+    ]
+},
+{   "email": "tata@gmail.com",
+    "send_email": 0,
+    "screenshot": 0,
+    "searches": [
+        {
+            "id":4,
+            "site":"annonces.nc",
+            "keywords": "ampli"
+        }
+    ]
+}
+]
