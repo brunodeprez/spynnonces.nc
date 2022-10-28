@@ -27,17 +27,6 @@ from email.mime.multipart import MIMEMultipart
 from email import encoders
 import os
 
-
-
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email.mime.multipart import MIMEMultipart
-from email import encoders
-import os
-
-
-
 logging.info('starting process')
 
 categories_to_remove = {
@@ -62,7 +51,17 @@ with p.open('r') as f:
 
 p = Path(__file__).with_name('smtp-config.json')
 with p.open('r') as f:
-  gmail_config = json.load(f)
+  smtp_config = json.load(f)
+
+
+def filter_hit():
+    if current_hit['kind'] != "sell" or  current_hit['category']['root_name'] != current_search['site'] or current_hit['category']['name'] in categories_to_remove[current_search['site']]:
+        return False
+    if current_search.get('max_km') and current_hit['custom_fields'].get('km') and current_hit['custom_fields']['km'] > current_search['max_km']:
+        #the hit as too much mileage
+        return False
+    return True
+
 
 def send_email_SMTP(smtpHost, smtpPort, mailUname, mailPwd, fromEmail, mailSubject, mailContentHtml, recepientsMailList, attachmentFile):
     # create message object
@@ -94,7 +93,7 @@ def send_email_SMTP(smtpHost, smtpPort, mailUname, mailPwd, fromEmail, mailSubje
     if not len(sendErrs.keys()) == 0:
         raise Exception("Errors occurred while sending email", sendErrs)
 
-async def send_email_API():
+async def send_email_API(status):
     api_key = mail_config['MailJet']['Api_Key']
     api_secret = mail_config['MailJet']['Api_Secret']
     mailjet = Client(auth=(api_key, api_secret), version='v3.1')
@@ -124,40 +123,19 @@ async def send_email_API():
 
     result = mailjet.send.create(data=data)
 
-async def send_email():
-
+async def send_email(status):
     # mail body, recepients, attachment files
-    mailSubject = "New add on annonces.nc for your search " + current_search['keywords']
+    mailSubject = "New "+ "-".join(status) +" on annonces.nc for your search " + current_search['keywords']
     mailContentHtml = "<a href=\"https://annonces.nc/" + current_search['site'][:-3]+"/posts/" + current_hit['slug']+"\">" + current_hit['title'] + "</a></li>"
     
     # generating the attachment picture
     Attachment = await screenshot()
 
-    send_email_SMTP(gmail_config['smtpHost'], gmail_config['smtpPort'], gmail_config['mailUname'], gmail_config['mailPwd'], gmail_config['fromEmail'], 
-            mailSubject, mailContentHtml, current_email_to, Attachment)
+    send_email_SMTP(smtp_config['smtpHost'], smtp_config['smtpPort'], smtp_config['mailUname'], smtp_config['mailPwd'], smtp_config['fromEmail'], 
+            mailSubject, mailContentHtml, current_config['email'], Attachment)
 
     print("Email sent...")
 
-
-
-def filter_hit():
-    if current_hit['kind'] != "sell" or  current_hit['category']['root_name'] != current_search['site'] or current_hit['category']['name'] in categories_to_remove[current_search['site']]:
-        return False
-    if current_search.get('max_km') and current_hit['custom_fields'].get('km') and current_hit['custom_fields']['km'] > current_search['max_km']:
-        #the hit as too much mileage
-        return False
-    return True
-
-
-async def process_new_hit():
-    processedAdsTable.insert({'search_id': current_search['id'] , 'hit_id': current_hit['id']})
-    if filter_hit() == True:
-        print('NEW AD! '  + str(current_search['id']) + ' ' + str(current_hit['id']) + ' - ' + str(current_hit['title']))
-        await send_email()
-        print('************************')
-        print('******* SENDING ********')
-        print('************************')
-        print('')
 # async def process_new_hit():
 #     processedAdsTable.insert({'search_id': current_search['id'] , 'hit_id': current_hit['id']})
 #     if filter_hit() == True:
