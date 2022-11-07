@@ -2,6 +2,7 @@
     "email": "toto@gmail.com",
     "send_email": 1,
     "screenshot": 0,
+    "single_email": 1
     "searches": [
         {
             "id":1,
@@ -20,6 +21,7 @@
 {   "email": "tata@gmail.com",
     "send_email": 0,
     "screenshot": 0,
+    "single_email": 0
     "searches": [
         {
             "id":4,

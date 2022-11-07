@@ -40,6 +40,15 @@ global current_search
 global current_email_to
 global browser
 global current_config
+global found_advert
+found_advert = 0
+global mailSubject
+global mailContentHtml
+global attachments
+global new_email
+new_email = 1
+global single_email
+
 
 p = Path(__file__).with_name('config.json')
 with p.open('r') as f:
@@ -53,7 +62,6 @@ p = Path(__file__).with_name('smtp-config.json')
 with p.open('r') as f:
   smtp_config = json.load(f)
 
-
 def filter_hit():
     if current_hit['kind'] != "sell" or  current_hit['category']['root_name'] != current_search['site'] or current_hit['category']['name'] in categories_to_remove[current_search['site']]:
         return False
@@ -63,7 +71,7 @@ def filter_hit():
     return True
 
 
-def send_email_SMTP(smtpHost, smtpPort, mailUname, mailPwd, fromEmail, mailSubject, mailContentHtml, recepientsMailList, attachmentFile):
+def send_email_SMTP(smtpHost, smtpPort, mailUname, mailPwd, fromEmail, mailSubject, mailContentHtml, recepientsMailList, attachmentFiles):
     # create message object
     msg = MIMEMultipart()
     msg['From'] = fromEmail
@@ -72,15 +80,20 @@ def send_email_SMTP(smtpHost, smtpPort, mailUname, mailPwd, fromEmail, mailSubje
     # msg.attach(MIMEText(mailContentText, 'plain'))
     msg.attach(MIMEText(mailContentHtml, 'html'))
 
+
     #---- ATTACHMENT PART ---------------
-    # open the file to be sent 
-    # This is the binary part(The Attachment):
-    part = MIMEBase('image','png')
-    part.set_payload(attachmentFile)
-    part.add_header('Content-Transfer-Encoding', 'base64')
-    part['Content-Disposition'] = 'attachment; filename="screenshot.png"'
-    msg.attach(part)    #--------------------------------------
-    
+    x = 1
+    for attachmentFile in attachmentFiles:
+        # open the file to be sent 
+        # This is the binary part(The Attachment):
+        part = MIMEBase('image','png')
+        part.set_payload(attachmentFile)
+        part.add_header('Content-Transfer-Encoding', 'base64')
+        part['Content-Disposition'] = 'attachment; filename="screenshot.png"'
+        msg.attach(part)    
+        x = x + 1
+    #--------------------------------------
+        
      # Send message object as email using smptplib
     s = smtplib.SMTP(smtpHost, smtpPort)
     s.starttls()
@@ -88,6 +101,8 @@ def send_email_SMTP(smtpHost, smtpPort, mailUname, mailPwd, fromEmail, mailSubje
     msgText = msg.as_string()
     sendErrs = s.sendmail(fromEmail, [recepientsMailList], msgText)
     s.quit()
+    print("Email sent...")
+
 
     # check if errors occured and handle them accordingly
     if not len(sendErrs.keys()) == 0:
@@ -134,21 +149,31 @@ async def send_email(status):
     send_email_SMTP(smtp_config['smtpHost'], smtp_config['smtpPort'], smtp_config['mailUname'], smtp_config['mailPwd'], smtp_config['fromEmail'], 
             mailSubject, mailContentHtml, current_config['email'], Attachment)
 
-    print("Email sent...")
+# add several adds found to the same email
+async def add_to_email(status):
+    global found_advert
+    found_advert = 1
+    global new_email
+    if new_email == 1:
+        global mailSubject
+        mailSubject = "New "+ "-".join(status) +" on annonces.nc for your search " + current_search['keywords']
+        global mailContentHtml
+        mailContentHtml = ''
+        global attachments
+        attachments = []
+        new_email = 0
+    else:
+        mailSubject += " - " + current_search['keywords']
+        
+    mailContentHtml += "<a href=\"https://annonces.nc/" + current_search['site'][:-3]+"/posts/" + current_hit['slug']+"\">" + current_hit['title'] + "</a></li><br>"
+    # generating the attachment picture
+    attachments.append(await screenshot())
 
-# async def process_new_hit():
-#     processedAdsTable.insert({'search_id': current_search['id'] , 'hit_id': current_hit['id']})
-#     if filter_hit() == True:
-#         print('NEW AD! '  + str(current_search['id']) + ' ' + str(current_hit['id']) + ' - ' + str(current_hit['title']))
-#         await send_email()
-
-# async def process_hit():
-#     status = get_hit_status()
-#     query = processedAdsTable.get((where('hit_id') == current_hit['id']) & (where('search_id') == current_search['id']))
-#     if query is None:
-#         await process_new_hit()
-#     else:
-#         print('skipping ad ' + str(current_hit['id']) + ' - ' + str(current_hit['title']))
+    # sending the email with the advert found if user chose distinct emails for each ad
+    if current_config['single_email'] == 0:
+        send_email_SMTP(smtp_config['smtpHost'], smtp_config['smtpPort'], smtp_config['mailUname'], smtp_config['mailPwd'], smtp_config['fromEmail'], 
+                mailSubject, mailContentHtml, current_config['email'], attachments)
+        new_email = 1
 
 async def process_hit():
     status = []
@@ -174,7 +199,8 @@ async def process_hit():
     if filter_hit() == True:
         logging.info('New | ' + " - ".join(status) + ' | ' + current_hit['title'])
         if current_config['send_email'] == 1:
-            await send_email(status)
+            #await send_email(status)
+            await add_to_email(status)
 
 
 async def screenshot():
@@ -228,6 +254,10 @@ async def process():
                     await process_hit()
                 page = page + 1
     await browser.close()
+    if current_config['single_email'] == 1 and found_advert == 1:
+        send_email_SMTP(smtp_config['smtpHost'], smtp_config['smtpPort'], smtp_config['mailUname'], smtp_config['mailPwd'], smtp_config['fromEmail'], 
+                mailSubject, mailContentHtml, current_config['email'], attachments)
+
     logging.info('finish process')
 
 asyncio.run(process())
