@@ -79,7 +79,8 @@ def send_email_SMTP(smtpHost, smtpPort, mailUname, mailPwd, fromEmail, mailSubje
     part.set_payload(attachmentFile)
     part.add_header('Content-Transfer-Encoding', 'base64')
     part['Content-Disposition'] = 'attachment; filename="screenshot.png"'
-    msg.attach(part)    #--------------------------------------
+    msg.attach(part)    
+    #--------------------------------------
     
      # Send message object as email using smptplib
     s = smtplib.SMTP(smtpHost, smtpPort)
@@ -135,20 +136,6 @@ async def send_email(status):
             mailSubject, mailContentHtml, current_config['email'], Attachment)
 
     print("Email sent...")
-
-# async def process_new_hit():
-#     processedAdsTable.insert({'search_id': current_search['id'] , 'hit_id': current_hit['id']})
-#     if filter_hit() == True:
-#         print('NEW AD! '  + str(current_search['id']) + ' ' + str(current_hit['id']) + ' - ' + str(current_hit['title']))
-#         await send_email()
-
-# async def process_hit():
-#     status = get_hit_status()
-#     query = processedAdsTable.get((where('hit_id') == current_hit['id']) & (where('search_id') == current_search['id']))
-#     if query is None:
-#         await process_new_hit()
-#     else:
-#         print('skipping ad ' + str(current_hit['id']) + ' - ' + str(current_hit['title']))
 
 async def process_hit():
     status = []
