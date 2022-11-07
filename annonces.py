@@ -16,16 +16,12 @@ import requests
 import json
 import urllib
 from tinydb import TinyDB, where
-from mailjet_rest import Client
 import asyncio
 from pyppeteer import launch
-
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
-from email import encoders
-import os
 
 logging.info('starting process')
 
@@ -37,17 +33,12 @@ categories_to_remove = {
 
 global current_hit
 global current_search
-global current_email_to
 global browser
 global current_config
 
 p = Path(__file__).with_name('config.json')
 with p.open('r') as f:
   config = json.load(f)
-
-p = Path(__file__).with_name('mail-config.json')
-with p.open('r') as f:
-  mail_config = json.load(f)
 
 p = Path(__file__).with_name('smtp-config.json')
 with p.open('r') as f:
@@ -93,36 +84,6 @@ def send_email_SMTP(smtpHost, smtpPort, mailUname, mailPwd, fromEmail, mailSubje
     # check if errors occured and handle them accordingly
     if not len(sendErrs.keys()) == 0:
         raise Exception("Errors occurred while sending email", sendErrs)
-
-async def send_email_API(status):
-    api_key = mail_config['MailJet']['Api_Key']
-    api_secret = mail_config['MailJet']['Api_Secret']
-    mailjet = Client(auth=(api_key, api_secret), version='v3.1')
-    base64Attachment = await screenshot() if current_config['screenshot'] ==  1 else None
-    data = {
-        "Messages": [
-            {
-            "From": mail_config['MailJet']['From'],
-            "To": [
-                {
-                "Email": current_config['email']
-                }
-            ],
-            "Subject": "New "+ "-".join(status) +" on annonces.nc for your search " + current_search['keywords'],
-            "HTMLPart": "<a href=\"https://annonces.nc/" + current_search['site'][:-3]+"/posts/" + current_hit['slug']+"\">" + current_hit['title'] + "</a></li>",
-            }
-        ]
-    }
-    if base64Attachment is not None:
-        data['Messages'][0]['Attachments'] = [
-            {
-                    "ContentType": "image/png",
-                    "Filename": "screenshot.png",
-                    "Base64Content": base64Attachment
-            }
-        ]      
-
-    result = mailjet.send.create(data=data)
 
 async def send_email(status):
     # mail body, recepients, attachment files
@@ -190,8 +151,8 @@ url = {
 }
 
 async def process():
-    global browser    
-    browser = await launch(ignoreHTTPSErrors = True, options = {'args': ['--no-sandbox', '--ignore-certificate-errors', '--ignore-certificate-errors-spki-list'] })
+    global browser
+    browser = await launch(ignoreHTTPSErrors = True, options = {'args': ['--no-sandbox'] })
     for x in config:
         global current_config
         current_config = x
@@ -205,7 +166,7 @@ async def process():
                     "page": page
                 }
                 data = {"params" : urllib.parse.urlencode(params)}
-                response = requests.post('https://gvle5z29mr-dsn.algolia.net/1/indexes/Post/query?' + urllib.parse.urlencode(url), data = json.dumps(data), verify = False)
+                response = requests.post('http://gvle5z29mr-dsn.algolia.net/1/indexes/Post/query?' + urllib.parse.urlencode(url), data = json.dumps(data))
                 results = response.json()
                 if len(results['hits']) == 0:
                     break
