@@ -108,36 +108,6 @@ def send_email_SMTP(smtpHost, smtpPort, mailUname, mailPwd, fromEmail, mailSubje
     if not len(sendErrs.keys()) == 0:
         raise Exception("Errors occurred while sending email", sendErrs)
 
-async def send_email_API(status):
-    api_key = mail_config['MailJet']['Api_Key']
-    api_secret = mail_config['MailJet']['Api_Secret']
-    mailjet = Client(auth=(api_key, api_secret), version='v3.1')
-    base64Attachment = await screenshot() if current_config['screenshot'] ==  1 else None
-    data = {
-        "Messages": [
-            {
-            "From": mail_config['MailJet']['From'],
-            "To": [
-                {
-                "Email": current_config['email']
-                }
-            ],
-            "Subject": "New "+ "-".join(status) +" on annonces.nc for your search " + current_search['keywords'],
-            "HTMLPart": "<a href=\"https://annonces.nc/" + current_search['site'][:-3]+"/posts/" + current_hit['slug']+"\">" + current_hit['title'] + "</a></li>",
-            }
-        ]
-    }
-    if base64Attachment is not None:
-        data['Messages'][0]['Attachments'] = [
-            {
-                    "ContentType": "image/png",
-                    "Filename": "screenshot.png",
-                    "Base64Content": base64Attachment
-            }
-        ]      
-
-    result = mailjet.send.create(data=data)
-
 async def send_email(status):
     # mail body, recepients, attachment files
     mailSubject = "New "+ "-".join(status) +" on annonces.nc for your search " + current_search['keywords']
@@ -156,7 +126,7 @@ async def add_to_email(status):
     global new_email
     if new_email == 1:
         global mailSubject
-        mailSubject = "New "+ "-".join(status) +" on annonces.nc for your search " + current_search['keywords']
+        mailSubject = "New/updated ad on annonces.nc"
         global mailContentHtml
         mailContentHtml = ''
         global attachments
@@ -165,7 +135,7 @@ async def add_to_email(status):
     else:
         mailSubject += " - " + current_search['keywords']
         
-    mailContentHtml += "<a href=\"https://annonces.nc/" + current_search['site'][:-3]+"/posts/" + current_hit['slug']+"\">" + current_hit['title'] + "</a></li><br>"
+    mailContentHtml += "<a href=\"https://annonces.nc/" + current_search['site'][:-3]+"/posts/" + current_hit['slug']+"\">" + current_hit['title'] + "</a></li> - New <b>"+ "-".join(status) + "</b> for your search on <b>" + current_search['keywords'] + "</b><br>"
     # generating the attachment picture
     attachments.append(await screenshot())
 
@@ -253,10 +223,12 @@ async def process():
                     current_hit = hit
                     await process_hit()
                 page = page + 1
+        if current_config['single_email'] == 1 and found_advert == 1:
+            send_email_SMTP(smtp_config['smtpHost'], smtp_config['smtpPort'], smtp_config['mailUname'], smtp_config['mailPwd'], smtp_config['fromEmail'], 
+                    mailSubject, mailContentHtml, current_config['email'], attachments)
+        global new_email
+        new_email = 1
     await browser.close()
-    if current_config['single_email'] == 1 and found_advert == 1:
-        send_email_SMTP(smtp_config['smtpHost'], smtp_config['smtpPort'], smtp_config['mailUname'], smtp_config['mailPwd'], smtp_config['fromEmail'], 
-                mailSubject, mailContentHtml, current_config['email'], attachments)
 
     logging.info('finish process')
 
