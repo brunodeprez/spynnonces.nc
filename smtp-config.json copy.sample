@@ -1,0 +1,7 @@
+{
+	"smtpHost": "smtp.gmail.com",
+	"smtpPort": 587,
+ 	"mailUname": "titi@gmail.com",
+	"mailPwd": "ljhtvopekoxxxxxx",
+	"fromEmail": "titi@gmail.com"
+}
